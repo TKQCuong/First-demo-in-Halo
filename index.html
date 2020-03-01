@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.3.0/knockout-min.js"
+      type="text/javascript"
+    ></script>
+    <script src="jquery.js"></script>
+    <script src="lodash.min.js"></script>
+    <script src="backbone.js"></script>
+    <script src="knockback.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+      integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh"
+      crossorigin="anonymous"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body>
+    <template id="component-template">
+      <!-- <a href="#" id="click_add" data-bind="click: check">check</a><br /> -->
+      <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <a class="navbar-brand" href="#" data-bind="click: home">Hahalolo</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+      
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          <ul class="navbar-nav mr-auto">
+          </ul>
+          <form class="form-inline my-2 my-lg-0">
+            <input class="form-control mr-sm-2" type="search" placeholder="Search" aria-label="Search" data-bind="value: newAccount.name">
+            <button class="btn btn-outline-success my-2 my-sm-0" type="submit" data-bind="click: search">Search</button>
+          </form>
+        </div>
+      </nav>
+
+      <h2 id="title">
+        List of Employees
+      </h2>
+
+      <!-- Form Input -->
+      <div id="form-input" >
+        <form data-bind="visible: shouldShow">
+            <div class="form-row">
+              <div class="col">
+                <input type="text" class="form-control" placeholder="Name" data-bind="value: newAccount.name">
+              </div>
+              <div class="col">
+                <input type="text" class="form-control" placeholder="DOB" data-bind="value: newAccount.dob">
+              </div>
+              <div class="col">
+                <input type="text" class="form-control" placeholder="Gender" data-bind="value: newAccount.gender">
+              </div>
+            </div>
+          </form>
+        <br />
+          <a href="#" id="click_add" data-bind="click: add, visible: addButton">Create New</a>
+          <a href="#" id="click_add" data-bind="click: add, visible: updateResetButton">Update Info</a> <span class="vl" data-bind="visible: updateResetButton"></span>
+          <a href="#" data-bind="click: reset, visible: updateResetButton" style="padding-left: 8px;">Reset</a>
+        </form>
+      </div>
+
+      <!-- Render Account Information -->
+      <table class="table table-hover">
+            <p id="total">Total:  &nbsp;<span data-bind="text: accountCollection().length"></span></p>
+        <thead>
+          <tr>
+            <th scope="col">#</th>
+            <th scope="col">Name</th>
+            <th scope="col">DOB</th>
+            <th scope="col">Gender</th>
+            <th scope="col"></th>
+            <th scope="col"></th>
+          </tr>
+        </thead>
+        <tbody data-bind="foreach: accountCollection">
+          <tr>
+            <th scope="row" data-bind="text: $index() + 1"></th>
+            <td data-bind="text: name"></td>
+            <td data-bind="text: dob"></td>
+            <td data-bind="text: gender"></td>
+            <td><a href="#" data-bind="click: $parent.onEdit">Edit</a></td>
+            <td><a href="#" data-bind="click: $parent.remove">Delete</a></td>
+          </tr>
+        </tbody>
+      </table>
+
+    </template>
+
+    <div id="App">
+      <new-component> </new-component>
+    </div>
+
+    <!-- <input type="button" value="debug" data-bind="click: debug" /> -->
+
+    <script type="text/javascript">
+      function mainAccount() {
+        let self = this;
+        let ko = kb.ko;
+
+        //Backbone Model (quản lý đối tượng)
+        let Account = Backbone.Model.extend({
+          defaults: {
+            id: "",
+            name: "",
+            dob: "",
+            gender: ""
+          }
+        });
+
+        //Make every attribute in Data to be observable by assigning kb.ViewModel
+        self.newAccount = new kb.ViewModel(new Account());
+
+        //Define Backbone Collection
+        let AccountCollection = Backbone.Collection.extend({
+          model: Account
+        });
+        self.accountBackboneCollection = new AccountCollection();
+
+        //Collection Knockback (Backbone collection, option)
+        self.accountCollection = kb.observableCollection(
+          self.accountBackboneCollection
+        );
+
+        //Add available object into Collection
+        self.accountBackboneCollection.add([
+          { id: 1, name: "cuong", dob: "1999", gender: "male" },
+          { id: 2, name: "john", dob: "1992", gender: "male" },
+          { id: 3, name: "mary", dob: "1993", gender: "female" }
+        ]);
+
+        //Method to modify data
+        self.home = () => {
+            console.log("still working on this button")
+        }
+
+        self.shouldShow = ko.observable(true);
+        self.search = () => {
+            let searchResult = self.accountBackboneCollection.findWhere({
+                name: self.newAccount.model().toJSON().name
+            });
+            self.shouldShow(false);
+            let name_collection = new AccountCollection(searchResult);
+            console.log(name_collection)
+        }
+
+        self.remove = view => {
+          let model = view.model().toJSON();
+          self.accountBackboneCollection.remove(model);
+          console.log(model);
+        };
+
+        self.updateResetButton = ko.observable(false);
+        self.addButton = ko.observable(true);
+        self.add = () => {
+            let modelValue = self.newAccount.model().toJSON();
+          let existedID = self.accountBackboneCollection.get({
+            id: self.newAccount.model().toJSON().id
+          });
+          let existedAcc = false;
+          for (let i = 0; i < self.accountCollection().length; i++) {
+            const obj = self
+              .accountCollection()
+              [i].model()
+              .toJSON();
+            if (
+              obj.name == modelValue.name &&
+              obj.dob == modelValue.dob &&
+              obj.gender == modelValue.gender
+            ) {
+              existedAcc = true;
+            }
+          }
+          if (existedID)
+            if (existedAcc)
+                alert("This Account's information is Existed !");
+            else
+                self.accountBackboneCollection.add(
+                {
+                    ...modelValue
+                },
+                { merge: true }
+                );
+          else if (existedAcc && !existedID) alert("This Account's information is Existed !");
+          else if (modelValue.name == "" || modelValue.dob == "" || modelValue.gender == "")
+              alert("Missing required information to create !")
+          else
+            self.accountBackboneCollection.add({
+              ...modelValue,
+              id: Math.random()
+            });
+        };
+
+        //self.check = () => {
+        //console.log(self.newAccount.model().toJSON());
+        //console.log(self.accountCollection().model());
+        //};
+
+        self.reset = () => {
+          self.newAccount.model().clear();
+          self.updateResetButton(false)
+          self.addButton(true)
+        };
+
+        self.onEdit = view => {
+          let currentValue = view.model().toJSON();
+          let newAcc_model = self.newAccount.model();
+          newAcc_model.set(currentValue);
+          self.updateResetButton(true);
+          self.addButton(false)
+        };
+
+        //self.newAccount => ViewModel
+        //self.newAccount.name => function()
+        //self.newAccount.model() => Object
+        //self.newAccount.model().toJSON() => Object chỉ có 3 fields (name, dob, gender)
+      }
+
+      //Register Component
+      ko.components.register("new-component", {
+        viewModel: mainAccount,
+        template: { element: "component-template" }
+      });
+      ko.applyBindings(null, $("App")[0]);
+    </script>
+
+    <script
+      src="https://code.jquery.com/jquery-3.4.1.slim.min.js"
+      integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
+      integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"
+      integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6"
+      crossorigin="anonymous"
+    ></script>
+  </body>
+</html>
